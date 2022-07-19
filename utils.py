@@ -50,3 +50,19 @@ def find_earth_circle(points):
 
     return radius, np.round(result.x).astype(int)
 
+
+def find_moon(img):
+    contours, hierarchy = cv2.findContours(img, 1, 2)
+    (x, y), radius = cv2.minEnclosingCircle(contours[0])
+
+    # img = cv2.cvtColor(img.astype(np.float32), cv2.COLOR_GRAY2BGR)
+
+    # img = cv2.circle(img, np.round([x, y]).astype(int), int(radius), (0, 0, 255), -1)
+    # img = cv2.resize(img, (0, 0), fx=5, fy=5)
+
+    return np.array((x, y)), radius
+
+
+def find_earth_edge(x, img):
+    #                         x, y
+    return x, np.argmax(img[:, x] > 0)
