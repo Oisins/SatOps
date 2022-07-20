@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 with open("time_delta.txt") as file:
     start = file.readline().strip()
     start_datetime = datetime.strptime(start, "%d %b %Y %H:%M:%SZ")
-    print(f"Image Capture at: {start_datetime}")
+    print(f"\nImage Capture at: {start_datetime.strftime('%d.%m.%Y %H:%M:%S')}\n")
 
-    for line in file.readlines():
+    for i, line in enumerate(file.readlines()):
         name, dt = line.strip().split(" ")
 
         sign, dt = dt[:1], dt[1:]
@@ -20,4 +20,4 @@ with open("time_delta.txt") as file:
 
         new_datetime = start_datetime + delta if sign == "+" else start_datetime - delta
 
-        print(f"{name:<20}{new_datetime.strftime('%d.%m.%Y %H:%M:%S')}")
+        print(f"{i:<3}{name:<20}{new_datetime.strftime('%d.%m.%Y %H:%M:%S')}")

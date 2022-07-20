@@ -52,51 +52,17 @@ print("x:", x)
 print("y:", y)
 print("z:", z)
 
+# Step 2.3: Construct transformation matrix
 transformation_BFK_to_ICRF = np.column_stack([x, y, z])
 print(transformation_BFK_to_ICRF)
 
 print(transformation_BFK_to_ICRF @ np.array([0, 0, 1]))
 
-# Step 2.3: Construct transformation matrix
-
-# Step 3: Transform YPR relative to LVLH reference frame to ECI
-
-# Step 4: Compare with ACS Data
-
-
-# Step X: Calculate Beesat9 to Moon vector
+# Step 3: Calculate Beesat9 to Moon vector
 beesat9_moon_vector = (earth + beesat9).at(timestamp).observe(moon)
-print("!!!", beesat9_moon_vector.position)
-print("!!!", beesat9_moon_vector.position.length())
-
-fig = plt.figure()
-ax = plt.axes(projection='3d')
-ax.quiver(0, 0, 0, *(np.array([0, 0, 1])), color='steelblue')
-ax.quiver(*beesat9_eci.position.m, *(transformation_BFK_to_ICRF @ np.array([1, 0, 0]) * 1e6), color='red')
-ax.quiver(*beesat9_eci.position.m, *(transformation_BFK_to_ICRF @ np.array([0, 1, 0]) * 1e6), color='green')
-ax.quiver(*beesat9_eci.position.m, *(transformation_BFK_to_ICRF @ np.array([0, 0, 1]) * 1e6), color='blue')
-
-ax.quiver(*beesat9_eci.position.m, *(beesat9_moon_vector.position.m / 100), color='orange')
-
-# draw sphere
-u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
-x = np.cos(u) * np.sin(v)
-y = np.sin(u) * np.sin(v)
-z = np.cos(v)
-
-earth_radius = 6371000
-# earth_radius = 10e10
-x, y, z = x * earth_radius, y * earth_radius, z * earth_radius
-ax.plot_wireframe(x, y, z, color="k")
-
-plt.plot(*beesat9_eci.position.m, 'bo')
-# plt.plot(*moon_eci.position.m, 'go')  # Moon
-
-# ax.set_xlim([-1e11, 1e11])
-# ax.set_ylim([-1e11, 1e11])
-# ax.set_zlim([-1e11, 1e11])
 
 beesat9_moon_vector_bfk = np.linalg.inv(transformation_BFK_to_ICRF) @ beesat9_moon_vector.position.m
+beesat9_apparent_moon_angle_BFK = math.degrees(np.arctan(beesat9_moon_vector_bfk[2] / beesat9_moon_vector_bfk[1]))
+
 print("Beesat9 -> Moon (BFK):", beesat9_moon_vector_bfk / np.linalg.norm(beesat9_moon_vector_bfk))
-print("Apparent Moon angle:", math.degrees(np.arctan(beesat9_moon_vector_bfk[2] / beesat9_moon_vector_bfk[1])))
-plt.show()
+print("Apparent Moon angle:", beesat9_apparent_moon_angle_BFK)
