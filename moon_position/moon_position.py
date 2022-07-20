@@ -33,3 +33,9 @@ y = np.cross(x, z)
 print("x:", x)
 print("y:", y)
 print("z:", z)
+
+# Step 2.3: Construct transformation matrix
+
+# Step 3: Transform YPR relative to LVLH reference frame to ECI
+
+# Step 4: Compare with ACS Data
