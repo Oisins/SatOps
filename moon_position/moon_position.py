@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from ephem import Moon
 from skyfield.sgp4lib import EarthSatellite
 from skyfield.api import load
 
@@ -14,13 +15,17 @@ beesat9 = EarthSatellite(line1, line2, 'Beesat 9', ts)
 
 planets = load('de405.bsp')
 earth = planets['earth']
+moon = planets['moon']
+
+#### Load Moon
+print("Moon Position Vector", (earth + moon).at(timestamp).position.length())
 
 #### Step 2: Create VVLH (or LVLH) Coordinate System / Transformation
 # VVLH can probably be created from the ECI instead of ICRF (or J2000) as
 # https://space.stackexchange.com/questions/33803
 # https://space.stackexchange.com/questions/48796
 
-# Step 2.1: Get Velocity vector for Beesat 9 (seems to be in ECI Reference frame)
+# Step 2.1: Get Position and Velocity vector for Beesat 9 (seems to be in ECI Reference frame)
 position_vector = (earth + beesat9).at(timestamp).position.m
 velocity_vector = (earth + beesat9).at(timestamp).velocity.m_per_s
 print(position_vector)
@@ -33,6 +38,11 @@ y = np.cross(x, z)
 print("x:", x)
 print("y:", y)
 print("z:", z)
+
+transformation = np.column_stack([x, y, z])
+print(transformation)
+
+print(transformation @ np.array([0, 0, 1]))
 
 # Step 2.3: Construct transformation matrix
 
