@@ -1,0 +1,5 @@
+numpy
+opencv-python
+skyfield
+matplotlib
+scipy
