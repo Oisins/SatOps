@@ -4,17 +4,21 @@ import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from moon_position.moon_position import beesat9_apparent_moon_angle_BFK, moon_eci, beesat9_eci, \
-    transformation_BFK_to_ICRF
+from moon_position.moon_position import beesat9_apparent_moon_angle_BFK, beesat9_eci, \
+    transformation_BFK_to_ICRF, beesat9_moon_vector
+from moon_position.visualisation import visualise_bodies
 from utils import find_earth_circle, segment_earth_moon, find_moon, find_earth_edge
 
 camera_angle_width = 15
+camera_angle_height = 11.5 * 2
 
 # Load image and convert to b/w
 # img_original = cv2.imread("bilder/csm_Beesat9_Moon-01-04-2020_61fb3aba42.jpg")
 img_original = cv2.imread("bilder/9-7.jpg")
 img_grey = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
 im_bw = cv2.threshold(img_grey, 60, 255, cv2.THRESH_BINARY)[1]
+
+image_height, image_width, _ = img_original.shape
 
 # Use Gauss filter to extract edges
 im_gauss = cv2.Laplacian(im_bw, cv2.CV_8U)
@@ -46,8 +50,8 @@ print("Earth center", earth_center)
 print("Earth radius", apparent_earth_radius)
 print()
 
-roll_angle = math.degrees(math.atan(m_sekante))
-print("Rollwinkel", roll_angle)
+roll_angle = -math.atan(m_sekante)
+print("Rollwinkel", math.degrees(roll_angle))
 
 moon_position_relativ = moon_position - np.array(img_original.shape[:2][::-1]) / 2
 # print("Y-Distance Moon to cross-hairs", moon_position_relativ[0])
@@ -76,27 +80,35 @@ beta = math.pi / 2 - alpha  # der Winkel zwischen Satellit und Erdhorziont
 
 L = math.cos(roll_angle) * earth_edge_relative
 vert_camera_angle_radians = math.radians(2 * 11.5)  # der vertikale Öffnungswinkel Beesat-9  in radian
-omega = vert_camera_angle_radians / math.cos(roll_angle)  # der wahre Öffungswinkel senkrecht zur Erdtangente (durch drehung vom KOS wird großer als original)
+omega = vert_camera_angle_radians / math.cos(
+    roll_angle)  # der wahre Öffungswinkel senkrecht zur Erdtangente (durch drehung vom KOS wird großer als original)
 
 c = 1200 / math.cos(roll_angle)  # das Bild ist horizontal 1200 pixel groß
 epsilon = L / c * omega
-pitch_angle = math.pi / 2 - beta - epsilon  # Der Nickwinkel
+pitch_angle = -(math.pi / 2 - beta - epsilon)  # Der Nickwinkel relativ zur Flugrichtung (Drehung nach oben = positiv)
 print("Pitch Angle:", math.degrees(pitch_angle))
 
-
 # Moon soll linie
-image_yaw = math.degrees(moon_position_relativ[1] / 1600 * math.radians(15))
-yaw_angle = beesat9_apparent_moon_angle_BFK - image_yaw
+image_yaw = moon_position_relativ[0] / 1600 * math.radians(camera_angle_width)
+yaw_angle = -(beesat9_apparent_moon_angle_BFK + image_yaw)
 # print("Image yaw", image_yaw)
-print("Total yaw", yaw_angle)
+print("Total yaw", math.degrees(yaw_angle))
 
-r = Rotation.from_euler('xyz', [yaw_angle, pitch_angle, roll_angle], degrees=False)
-print(r.as_matrix())
+# pitch_angle = 0
+roll_angle = 0
+# yaw_angle = 0
 
-mat = r.as_matrix().T * transformation_BFK_to_ICRF
-print(r.as_matrix().T * transformation_BFK_to_ICRF)
+# 'xzy', [yaw_angle, pitch_angle, roll_angle]
+rotation_BFK_to_KFK = Rotation.from_euler('xzy', [yaw_angle, pitch_angle, roll_angle], degrees=False)
+print(rotation_BFK_to_KFK.as_matrix())
 
-print(Rotation.from_matrix(mat).as_euler("xyz", degrees=True))
+transformation_BFK_to_ICRF = Rotation.from_matrix(transformation_BFK_to_ICRF)
+
+rotation_ICRF_to_KFK = transformation_BFK_to_ICRF * rotation_BFK_to_KFK.inv()
+
+visualise_bodies(beesat9_eci, transformation_BFK_to_ICRF, rotation_ICRF_to_KFK, beesat9_moon_vector)
+
+print("Final Euler Angles", rotation_ICRF_to_KFK.as_euler("xyz", degrees=True))
 
 cv2.imshow("IMG2", img_original)
 cv2.waitKey(0)
