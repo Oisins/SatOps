@@ -14,14 +14,21 @@ camera_angle_height = 11.5 * 2
 
 # Load image and convert to b/w
 # img_original = cv2.imread("bilder/csm_Beesat9_Moon-01-04-2020_61fb3aba42.jpg")
-img_original = cv2.imread("bilder/9-7.jpg")
+# img_original = cv2.imread("bilder/9-7.jpg")
+img_original = cv2.imread("bilder/B4-Slot11-Horizon.jpg")
 img_grey = cv2.cvtColor(img_original, cv2.COLOR_BGR2GRAY)
 im_bw = cv2.threshold(img_grey, 60, 255, cv2.THRESH_BINARY)[1]
+
+cv2.imwrite("out/0-original.jpg", img_original)
+cv2.imwrite("out/1-grey.jpg", img_grey)
+cv2.imwrite("out/2-bw.jpg", im_bw)
 
 image_height, image_width, _ = img_original.shape
 
 # Use Gauss filter to extract edges
 im_gauss = cv2.Laplacian(im_bw, cv2.CV_8U)
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+cv2.imwrite("out/3-gauss.jpg", cv2.dilate(im_gauss, kernel, iterations=2))
 
 # Segment Earth and Moon
 earth_mask, moon_mask = segment_earth_moon(im_bw)
@@ -32,7 +39,7 @@ im_moon = im_bw & moon_mask
 moon_position, moon_radius = find_moon(im_moon)
 
 # Determine apparent center of earth and radius
-points = np.array([find_earth_edge(x, im_earth) for x in range(im_gauss.shape[1])])
+points = np.array([find_earth_edge(x, im_earth) for x in range(im_gauss.shape[1])])  # TODO: Hier wird Kante gesucht. Es muss iwie unterschieden werden, ob der Pixel gefunden wurde und wenn nicht soll dieser Wert aus dem Array entfernt werden
 apparent_earth_radius, earth_center = find_earth_circle(points)
 
 # Place chord on earths edge and calculate slope
@@ -41,11 +48,6 @@ m_radius = -1 / m_sekante
 
 # Calculate reference point. Point lies on intersection of earth and a line perpendicular to the previously calculated
 # chord passing through the center of the earth
-dx = np.cos(np.arctan(m_radius)) * apparent_earth_radius
-dy = dx * m_radius
-
-reference_point_x = earth_center[0] + dx
-reference_point_y = earth_center[1] + dy
 print("Earth center", earth_center)
 print("Earth radius", apparent_earth_radius)
 print()
@@ -62,17 +64,17 @@ earth_edge_relative = earth_center[1] - math.sqrt(
 print("Y-Distance Earth edge to Cross-Hairs", earth_edge_relative)
 
 # Draw onto image
-img_original = cv2.line(img_original, points[0], points[-1], color=(0, 0, 255))
-img_original = cv2.circle(img_original, earth_center, int(apparent_earth_radius), (0, 255, 0), 1)
-img_original = cv2.circle(img_original, np.round([reference_point_x, reference_point_y]).astype(int),
-                          1, (0, 0, 255), -1)
-img_original = cv2.circle(img_original, np.round(moon_position).astype(int), int(moon_radius), (0, 255, 0), 2)
+img_original = cv2.line(img_original, points[0], points[-1], color=(0, 0, 255), thickness=3)
+img_original = cv2.circle(img_original, earth_center, int(apparent_earth_radius), (0, 255, 0), 3,
+                          lineType=cv2.LINE_AA)  # Earth Horizon
+img_original = cv2.circle(img_original, np.round(moon_position).astype(int), int(moon_radius), (0, 255, 0), 3)  # Moon
 
 # Cross-hairs
 img_original = cv2.line(img_original, (0, int(img_original.shape[0] / 2)),
                         (img_original.shape[1], int(img_original.shape[0] / 2)), thickness=1, color=(255, 255, 255))
 img_original = cv2.line(img_original, (int(img_original.shape[1] / 2), 0),
                         (int(img_original.shape[1] / 2), img_original.shape[0]), thickness=1, color=(255, 255, 255))
+cv2.imwrite("out/4-augmented.jpg", img_original)
 
 # Jan Rechnung
 alpha = math.acos(6_371_000 / beesat9_eci.position.length().m)
@@ -108,7 +110,8 @@ rotation_ICRF_to_KFK = transformation_BFK_to_ICRF * rotation_BFK_to_KFK.inv()
 
 visualise_bodies(beesat9_eci, transformation_BFK_to_ICRF, rotation_ICRF_to_KFK, beesat9_moon_vector)
 
-print("Final Euler Angles", rotation_ICRF_to_KFK.as_euler("xyz", degrees=True))
+print("Final Euler Angles", rotation_ICRF_to_KFK.as_euler("xzy", degrees=True))
+print("Final Quat.", rotation_ICRF_to_KFK.as_quat())
 
 cv2.imshow("IMG2", img_original)
 cv2.waitKey(0)

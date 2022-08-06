@@ -2,12 +2,10 @@
 import math
 
 import numpy as np
-from matplotlib import pyplot as plt
-from skyfield.sgp4lib import EarthSatellite
 from skyfield.api import load
+from skyfield.sgp4lib import EarthSatellite
 
 #### Step 1: Create Beesat 9 TLEs, load Earth and create timestamp
-from moon_position.visualisation import visualise_bodies
 
 ts = load.timescale()
 timestamp = ts.utc(2022, 2, 15, 12, 36, 43)
@@ -67,5 +65,3 @@ beesat9_apparent_moon_angle_BFK = np.arctan(beesat9_moon_vector_bfk[2] / beesat9
 
 print("Beesat9 -> Moon (BFK):", beesat9_moon_vector_bfk / np.linalg.norm(beesat9_moon_vector_bfk))
 print("Apparent Moon angle:", math.degrees(beesat9_apparent_moon_angle_BFK))
-
-#
