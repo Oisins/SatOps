@@ -1,3 +1,4 @@
+import numpy as np
 from ephem import Observer, Moon
 from skyfield.api import load, wgs84
 from datetime import datetime
@@ -7,8 +8,9 @@ from skyfield.timelib import Timescale
 
 ts = load.timescale()
 
-timestamp = ts.utc(2022, 2, 15, 12, 36, 43)
-timestamp = ts.utc(2022, 7, 23, 19, 10, 0)
+#timestamp = ts.utc(2022, 2, 15, 12, 36, 43)
+#timestamp = ts.utc(2022, 7, 23, 19, 10, 0)
+timestamp = ts.utc(2022, 7, 3, 6, 27, 52)
 
 line1 = '1 44412U 19038AC  22045.39596195  .00006669  00000-0  36191-3 0  9996'
 line2 = '2 44412  97.6206  14.1119 0020861 195.3802 164.6798 15.14703389144055'
@@ -40,7 +42,7 @@ print("Dec", moon_earth.a_dec)
 # print(dec)
 # print(distance)
 print("")
-barycentric = (earth + beesat9).at(timestamp).observe(moon)
+barycentric = (earth + beesat9).at(timestamp).observe(moon) # im ICRF???
 print("!!!", barycentric.position)
 print("!!!", barycentric.position.length())
 ra, dec, distance = barycentric.radec()
@@ -57,3 +59,12 @@ print(distance)
 
 now = beesat9.at(timestamp)
 
+print("--- von Vici eingefügt --- ")
+
+barycentric = (earth + beesat9).at(timestamp).observe(moon)
+print("!!!", barycentric.position)
+print("!!!", barycentric.position.length())
+position_vector = barycentric.position.m
+
+position_vector_norm = position_vector / np.linalg.norm(position_vector)
+print(position_vector_norm)

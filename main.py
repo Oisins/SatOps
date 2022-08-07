@@ -39,11 +39,18 @@ im_moon = im_bw & moon_mask
 moon_position, moon_radius = find_moon(im_moon)
 
 # Determine apparent center of earth and radius
-points = np.array([find_earth_edge(x, im_earth) for x in range(im_gauss.shape[1])])  # TODO: Hier wird Kante gesucht. Es muss iwie unterschieden werden, ob der Pixel gefunden wurde und wenn nicht soll dieser Wert aus dem Array entfernt werden
-apparent_earth_radius, earth_center = find_earth_circle(points)
+edge_points = find_earth_edge(im_earth)
+im_earth *= 255
+im_earth = cv2.cvtColor(im_earth, cv2.COLOR_GRAY2RGB)
+for point in edge_points:
+    im_earth = cv2.circle(im_earth, point, radius=0, color=(0, 0, 255), thickness=-1)
+
+cv2.imshow("IMG2", cv2.resize(im_earth, fx=0.5, fy=0.5, dsize=None))
+cv2.waitKey(0)
+apparent_earth_radius, earth_center = find_earth_circle(edge_points)
 
 # Place chord on earths edge and calculate slope
-m_sekante = (points[0][1] - points[-1][1]) / (points[0][0] - points[-1][0])
+m_sekante = (edge_points[0][1] - edge_points[-1][1]) / (edge_points[0][0] - edge_points[-1][0])
 m_radius = -1 / m_sekante
 
 # Calculate reference point. Point lies on intersection of earth and a line perpendicular to the previously calculated
@@ -64,7 +71,7 @@ earth_edge_relative = earth_center[1] - math.sqrt(
 print("Y-Distance Earth edge to Cross-Hairs", earth_edge_relative)
 
 # Draw onto image
-img_original = cv2.line(img_original, points[0], points[-1], color=(0, 0, 255), thickness=3)
+img_original = cv2.line(img_original, edge_points[0], edge_points[-1], color=(0, 0, 255), thickness=3)
 img_original = cv2.circle(img_original, earth_center, int(apparent_earth_radius), (0, 255, 0), 3,
                           lineType=cv2.LINE_AA)  # Earth Horizon
 img_original = cv2.circle(img_original, np.round(moon_position).astype(int), int(moon_radius), (0, 255, 0), 3)  # Moon
@@ -97,17 +104,31 @@ yaw_angle = -(beesat9_apparent_moon_angle_BFK + image_yaw)
 print("Total yaw", math.degrees(yaw_angle))
 
 # pitch_angle = 0
-roll_angle = 0
+# roll_angle = 0
 # yaw_angle = 0
 
-# 'xzy', [yaw_angle, pitch_angle, roll_angle]
-rotation_BFK_to_KFK = Rotation.from_euler('xzy', [yaw_angle, pitch_angle, roll_angle], degrees=False)
-print(rotation_BFK_to_KFK.as_matrix())
+# 'xzy', [yaw_angle, pitch_angle, roll_angle], sind das die Winkel vom Pixel- zum BFK?
+rotation_BFK_to_KFK = Rotation.from_euler('xzy', [roll_angle, pitch_angle, yaw_angle], degrees=False) # hier Winkel minus ICRF-Winkel reintun, diese Winkel ins ICRF und dann diese Trafo anwenden, ist doch pixel zu bahnfest?
+print(rotation_BFK_to_KFK.as_matrix()) # trafo north east down cs to body fixed cs
+
 
 transformation_BFK_to_ICRF = Rotation.from_matrix(transformation_BFK_to_ICRF)
 
-rotation_ICRF_to_KFK = transformation_BFK_to_ICRF * rotation_BFK_to_KFK.inv()
+richtige_rot = rotation_BFK_to_KFK.as_euler("xzy", degrees=True) - transformation_BFK_to_ICRF.as_euler("xzy", degrees=True)  # euler - bahnfest
+print("richtig:", richtige_rot)
 
+euler_winkel = richtige_rot + transformation_BFK_to_ICRF.as_euler("xzy", degrees=True)
+print("Euler-Winkel", euler_winkel)
+
+[ra_ICRF, pa_ICRF, ya_ICRF] = transformation_BFK_to_ICRF * [roll_angle, pitch_angle, yaw_angle]
+rot_ICRF_to_kf = Rotation.from_euler("xyz", [ra_ICRF, pa_ICRF, ya_ICRF], degrees=False) # das hier stimmt nicht
+[ra_kf, pa_kf, ya_kf] =  rot_ICRF_to_kf *  [ra_ICRF, pa_ICRF, ya_ICRF]
+print("Angles:", [ra_kf, pa_kf, ya_kf])
+
+print("----------")
+rotation_ICRF_to_KFK = transformation_BFK_to_ICRF * rotation_BFK_to_KFK.inv() # hier beide Winkel verrechnen, warum Inverse?
+final_rotation = Rotation.from_euler('xyz', [rotation_ICRF_to_KFK.as_euler("xzy", degrees=False)], degrees=False)
+print("final", final_rotation.as_euler("xyz", degrees=True))
 visualise_bodies(beesat9_eci, transformation_BFK_to_ICRF, rotation_ICRF_to_KFK, beesat9_moon_vector)
 
 print("Final Euler Angles", rotation_ICRF_to_KFK.as_euler("xzy", degrees=True))
@@ -115,3 +136,8 @@ print("Final Quat.", rotation_ICRF_to_KFK.as_quat())
 
 cv2.imshow("IMG2", img_original)
 cv2.waitKey(0)
+
+
+
+# Euler-Winkel im ICRF-System darstellen
+# dann Sequenz auf diese dargestellten Winkel anwenden

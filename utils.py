@@ -63,10 +63,20 @@ def find_moon(img):
     return np.array((x, y)), radius
 
 
-def find_earth_edge(x, img):
-    #                         x, y
-    # TODO: Wie verhält sich argmax wenn keine Kante da ist, also alle werte 0 sind und es kein maximum gibt
-    #       -> Rückgabewert dieser Methode anpassen, sodass man erkennen kann, dass keine Kante vorhanden ist in der spalte
-    #       -> z.B. return None
+def find_earth_edge(img):
+    """ Return list of points (x, y) that represent the edge of the earth """
+    points = []
 
-    return x, np.argmax(img[:, x] > 0)
+    for x, col in enumerate(img.T):
+        if np.sum(col) == 0:
+            # TODO: Was hier tun?
+            continue
+        # TODO: Was hier tun?
+        points.append((x, np.argmax(col)))
+
+        #                         x, y
+        # TODO: Wie verhält sich argmax wenn keine Kante da ist, also alle werte 0 sind und es kein maximum gibt
+        #       -> Rückgabewert dieser Methode anpassen, sodass man erkennen kann, dass keine Kante vorhanden ist in der spalte
+        #       -> z.B. return nan
+
+    return np.array(points)
