@@ -43,10 +43,15 @@ print("Beesat9 Position Vector (ECI) in m", position_vector_eci)
 print("Beesat9 Velocity Vector (ECI) in m/s", velocity_vector_eci)
 
 # Step 2.2: Construct unit vectors for LVLH Reference frame
-z = np.cross(position_vector_eci, velocity_vector_eci) / np.linalg.norm(
+
+# x - rot: Flugrichtung
+# y - grün: "Rechter Flügel"
+# z - blau: Nadir (zum Erdmittelpunkt)
+
+y = np.cross(position_vector_eci, velocity_vector_eci) / np.linalg.norm(
     np.cross(position_vector_eci, velocity_vector_eci))
-x = position_vector_eci / np.linalg.norm(position_vector_eci)
-y = np.cross(z, x)
+z = -position_vector_eci / np.linalg.norm(position_vector_eci)
+x = np.cross(y, z)
 print("x:", x)
 print("y:", y)
 print("z:", z)
