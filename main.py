@@ -5,7 +5,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 from moon_position.moon_position import beesat9_apparent_moon_angle_BFK, beesat9_eci, \
-    transformation_BFK_to_ICRF, beesat9_moon_vector
+    transformation_ICRF_to_BFK, beesat9_moon_vector
 from moon_position.visualisation import visualise_bodies
 from utils import find_earth_circle, segment_earth_moon, find_moon, find_earth_edge
 
@@ -45,8 +45,8 @@ im_earth = cv2.cvtColor(im_earth, cv2.COLOR_GRAY2RGB)
 for point in edge_points:
     im_earth = cv2.circle(im_earth, point, radius=0, color=(0, 0, 255), thickness=-1)
 
-cv2.imshow("IMG2", cv2.resize(im_earth, fx=0.5, fy=0.5, dsize=None))
-cv2.waitKey(0)
+# cv2.imshow("IMG2", cv2.resize(im_earth, fx=0.5, fy=0.5, dsize=None))
+# cv2.waitKey(0)
 apparent_earth_radius, earth_center = find_earth_circle(edge_points)
 
 # Place chord on earths edge and calculate slope
@@ -88,55 +88,69 @@ alpha = math.acos(6_371_000 / beesat9_eci.position.length().m)
 beta = math.pi / 2 - alpha  # der Winkel zwischen Satellit und Erdhorziont
 
 L = math.cos(roll_angle) * earth_edge_relative
-vert_camera_angle_radians = math.radians(2 * 11.5)  # der vertikale Öffnungswinkel Beesat-9  in radian
+vert_camera_angle_radians = math.radians(camera_angle_height)  # der vertikale Öffnungswinkel Beesat-9  in radian
 omega = vert_camera_angle_radians / math.cos(
     roll_angle)  # der wahre Öffungswinkel senkrecht zur Erdtangente (durch drehung vom KOS wird großer als original)
 
-c = 1200 / math.cos(roll_angle)  # das Bild ist horizontal 1200 pixel groß
+c = image_height / math.cos(roll_angle)  # das Bild ist horizontal 1200 pixel groß
 epsilon = L / c * omega
-pitch_angle = -(math.pi / 2 - beta - epsilon)  # Der Nickwinkel relativ zur Flugrichtung (Drehung nach oben = positiv)
+pitch_angle = -(beta - epsilon)  # Der Nickwinkel relativ zur Flugrichtung (Drehung nach oben = positiv)
 print("Pitch Angle:", math.degrees(pitch_angle))
 
 # Moon soll linie
-image_yaw = moon_position_relativ[0] / 1600 * math.radians(camera_angle_width)
+image_yaw = moon_position_relativ[0] / image_width * math.radians(camera_angle_width)
 yaw_angle = -(beesat9_apparent_moon_angle_BFK + image_yaw)
 # print("Image yaw", image_yaw)
-print("Total yaw", math.degrees(yaw_angle))
+# print("Total yaw", math.degrees(yaw_angle))
 
-# pitch_angle = 0
-# roll_angle = 0
-# yaw_angle = 0
+#pitch_angle = 0
+roll_angle = 0
+#yaw_angle = math.radians(90)
+#yaw_angle = 0
+# yaw_angle = beesat9_apparent_moon_angle_BFK  # Drehung um Z_Achse
+
+# Die Kamera zeigt im Körperfesten Koordinatensystem in Z-Richtung. Mit der Transformation wird die Anbringung der
+# Kamera kompensiert, sodass Drehungen der Konvention z=gieren, y=nicken, x=rollen folgen.
+transformation_BFK_Camera = Rotation.from_matrix(np.array([
+    [0, 0, 1],
+    [0, -1, 0],
+    [1, 0, 0]
+]))
+print("Camera\n", transformation_BFK_Camera.as_matrix())
 
 # 'xzy', [yaw_angle, pitch_angle, roll_angle], sind das die Winkel vom Pixel- zum BFK?
-rotation_BFK_to_KFK = Rotation.from_euler('xzy', [roll_angle, pitch_angle, yaw_angle], degrees=False) # hier Winkel minus ICRF-Winkel reintun, diese Winkel ins ICRF und dann diese Trafo anwenden, ist doch pixel zu bahnfest?
-print(rotation_BFK_to_KFK.as_matrix()) # trafo north east down cs to body fixed cs
+# Vorher zyx
+# Vorher
+transformation_camera_to_target = Rotation.from_euler("XYZ", [roll_angle, pitch_angle, yaw_angle], degrees=False)
 
+# hier Winkel minus ICRF-Winkel reintun, diese Winkel ins ICRF und dann diese Trafo anwenden, ist pixel zu bahnfest?
 
-transformation_BFK_to_ICRF = Rotation.from_matrix(transformation_BFK_to_ICRF)
+print("BFK to KFK:\n", transformation_camera_to_target.as_matrix())  # trafo north east down cs to body fixed cs
 
-richtige_rot = rotation_BFK_to_KFK.as_euler("xzy", degrees=True) - transformation_BFK_to_ICRF.as_euler("xzy", degrees=True)  # euler - bahnfest
-print("richtig:", richtige_rot)
+# richtige_rot = rotation_BFK_to_KFK.as_euler("xzy", degrees=True) - transformation_BFK_to_ICRF.as_euler("xzy", degrees=True)  # euler - bahnfest
+# print("richtig:", richtige_rot)
+#
+# euler_winkel = richtige_rot + transformation_BFK_to_ICRF.as_euler("xzy", degrees=True)
+# print("Euler-Winkel", euler_winkel)
+#
+# [ra_ICRF, pa_ICRF, ya_ICRF] = transformation_BFK_to_ICRF * [roll_angle, pitch_angle, yaw_angle]
+# rot_ICRF_to_kf = Rotation.from_euler("xyz", [ra_ICRF, pa_ICRF, ya_ICRF], degrees=False) # das hier stimmt nicht
+# [ra_kf, pa_kf, ya_kf] =  rot_ICRF_to_kf *  [ra_ICRF, pa_ICRF, ya_ICRF]
+# print("Angles:", [ra_kf, pa_kf, ya_kf])
 
-euler_winkel = richtige_rot + transformation_BFK_to_ICRF.as_euler("xzy", degrees=True)
-print("Euler-Winkel", euler_winkel)
+# Transformationen: ECI -> Bahnfest (BFK) -> Kamera -> Target
 
-[ra_ICRF, pa_ICRF, ya_ICRF] = transformation_BFK_to_ICRF * [roll_angle, pitch_angle, yaw_angle]
-rot_ICRF_to_kf = Rotation.from_euler("xyz", [ra_ICRF, pa_ICRF, ya_ICRF], degrees=False) # das hier stimmt nicht
-[ra_kf, pa_kf, ya_kf] =  rot_ICRF_to_kf *  [ra_ICRF, pa_ICRF, ya_ICRF]
-print("Angles:", [ra_kf, pa_kf, ya_kf])
-
-print("----------")
-rotation_ICRF_to_KFK = transformation_BFK_to_ICRF * rotation_BFK_to_KFK.inv() # hier beide Winkel verrechnen, warum Inverse?
-final_rotation = Rotation.from_euler('xyz', [rotation_ICRF_to_KFK.as_euler("xzy", degrees=False)], degrees=False)
+transformation_ICRF_to_target = transformation_ICRF_to_BFK * transformation_BFK_Camera * transformation_camera_to_target.inv()
+transformation_ICRF_to_camera = transformation_ICRF_to_BFK * transformation_BFK_Camera
+final_rotation = Rotation.from_euler('xyz', [transformation_ICRF_to_target.as_euler("xzy", degrees=False)], degrees=False)
 print("final", final_rotation.as_euler("xyz", degrees=True))
-visualise_bodies(beesat9_eci, transformation_BFK_to_ICRF, rotation_ICRF_to_KFK, beesat9_moon_vector)
+visualise_bodies(beesat9_eci, transformation_ICRF_to_BFK, transformation_ICRF_to_target, beesat9_moon_vector)
 
-print("Final Euler Angles", rotation_ICRF_to_KFK.as_euler("xzy", degrees=True))
-print("Final Quat.", rotation_ICRF_to_KFK.as_quat())
+print("Final Euler Angles", transformation_ICRF_to_target.as_euler("xzy", degrees=True))
+print("Final Quat.", transformation_ICRF_to_target.as_quat())
 
-cv2.imshow("IMG2", img_original)
-cv2.waitKey(0)
-
+# cv2.imshow("IMG2", img_original)
+# cv2.waitKey(0)
 
 
 # Euler-Winkel im ICRF-System darstellen

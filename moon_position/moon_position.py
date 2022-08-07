@@ -2,6 +2,7 @@
 import math
 
 import numpy as np
+from scipy.spatial.transform import Rotation
 from skyfield.api import load
 from skyfield.sgp4lib import EarthSatellite
 
@@ -57,15 +58,15 @@ print("y:", y)
 print("z:", z)
 
 # Step 2.3: Construct transformation matrix
-transformation_BFK_to_ICRF = np.column_stack([x, y, z])
-print(transformation_BFK_to_ICRF)
+transformation_ICRF_to_BFK = Rotation.from_matrix(np.column_stack([x, y, z]))
+print(transformation_ICRF_to_BFK)
 
-print(transformation_BFK_to_ICRF @ np.array([0, 0, 1]))
+# print(transformation_BFK_to_ICRF @ np.array([0, 0, 1]))
 
 # Step 3: Calculate Beesat9 to Moon vector
 beesat9_moon_vector = (earth + beesat9).at(timestamp).observe(moon)
 
-beesat9_moon_vector_bfk = np.linalg.inv(transformation_BFK_to_ICRF) @ beesat9_moon_vector.position.m
+beesat9_moon_vector_bfk = transformation_ICRF_to_BFK.inv().apply(beesat9_moon_vector.position.m)
 beesat9_apparent_moon_angle_BFK = np.arctan(beesat9_moon_vector_bfk[2] / beesat9_moon_vector_bfk[1])
 
 print("Beesat9 -> Moon (BFK):", beesat9_moon_vector_bfk / np.linalg.norm(beesat9_moon_vector_bfk))
