@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from moon_position.moon_position import beesat9_apparent_moon_angle_BFK, beesat9_eci, \
-    transformation_ICRF_to_BFK, beesat9_moon_vector
+from moon_position.moon_position import satellite_apparent_moon_angle_BFK, beesat9_eci, \
+    transformation_ICRF_to_BFK, satellite_moon_vector
 from moon_position.visualisation import visualise_bodies
 from utils import find_earth_circle, segment_earth_moon, find_moon, find_earth_edge
 
@@ -99,7 +99,7 @@ print("Pitch Angle:", math.degrees(pitch_angle))
 
 # Moon soll linie
 image_yaw = moon_position_relativ[0] / image_width * math.radians(camera_angle_width)
-yaw_angle = -(beesat9_apparent_moon_angle_BFK + image_yaw)
+yaw_angle = -(satellite_apparent_moon_angle_BFK + image_yaw)
 # print("Image yaw", image_yaw)
 # print("Total yaw", math.degrees(yaw_angle))
 
@@ -144,7 +144,7 @@ transformation_ICRF_to_target = transformation_ICRF_to_BFK * transformation_BFK_
 transformation_ICRF_to_camera = transformation_ICRF_to_BFK * transformation_BFK_Camera
 final_rotation = Rotation.from_euler('xyz', [transformation_ICRF_to_target.as_euler("xzy", degrees=False)], degrees=False)
 print("final", final_rotation.as_euler("xyz", degrees=True))
-visualise_bodies(beesat9_eci, transformation_ICRF_to_BFK, transformation_ICRF_to_target, beesat9_moon_vector)
+visualise_bodies(beesat9_eci, transformation_ICRF_to_BFK, transformation_ICRF_to_target, satellite_moon_vector)
 
 print("Final Euler Angles", transformation_ICRF_to_target.as_euler("xzy", degrees=True))
 print("Final Quat.", transformation_ICRF_to_target.as_quat())

@@ -27,7 +27,7 @@ def set_axes_equal(ax: plt.Axes):
     _set_axes_radius(ax, origin, radius)
 
 
-def visualise_bodies(beesat9_eci, transformation_BFK_to_ICRF, rotation_BFK_to_KFK, beesat9_moon_vector):
+def visualise_bodies(beesat9_eci, transformation_BFK_to_ICRF, rotation_ICRF_to_KFK, beesat9_moon_vector):
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     ax.quiver(0, 0, 0, *(np.array([0, 0, 1])), color='steelblue')
@@ -35,11 +35,11 @@ def visualise_bodies(beesat9_eci, transformation_BFK_to_ICRF, rotation_BFK_to_KF
     ax.quiver(*beesat9_eci.position.m, *(transformation_BFK_to_ICRF.apply(np.array([0, 1, 0]) * 1e6)), color='green')
     ax.quiver(*beesat9_eci.position.m, *(transformation_BFK_to_ICRF.apply(np.array([0, 0, 1]) * 1e6)), color='blue')
 
-    ax.quiver(*beesat9_eci.position.m, *(rotation_BFK_to_KFK.apply(np.array([1, 0, 0]) * 1e6)), color='red',
+    ax.quiver(*beesat9_eci.position.m, *(rotation_ICRF_to_KFK.apply(np.array([1, 0, 0]) * 1e6)), color='red',
               linestyle="--")
-    ax.quiver(*beesat9_eci.position.m, *(rotation_BFK_to_KFK.apply(np.array([0, 1, 0]) * 1e6)), color='green',
+    ax.quiver(*beesat9_eci.position.m, *(rotation_ICRF_to_KFK.apply(np.array([0, 1, 0]) * 1e6)), color='green',
               linestyle="--")
-    ax.quiver(*beesat9_eci.position.m, *(rotation_BFK_to_KFK.apply(np.array([0, 0, 1]) * 1e6)), color='blue',
+    ax.quiver(*beesat9_eci.position.m, *(rotation_ICRF_to_KFK.apply(np.array([0, 0, 1]) * 1e6)), color='blue',
               linestyle="--")
 
     ax.quiver(*beesat9_eci.position.m, *(beesat9_moon_vector.position.m / 100), color='orange')
@@ -52,7 +52,7 @@ def visualise_bodies(beesat9_eci, transformation_BFK_to_ICRF, rotation_BFK_to_KF
 
     earth_radius = 6371000
     x, y, z = x * earth_radius, y * earth_radius, z * earth_radius
-    # ax.plot_wireframe(x, y, z, color="k")  # Earth
+    ax.plot_wireframe(x, y, z, color="k")  # Earth
 
     # plt.plot(*beesat9_eci.position.m, 'bo')  # Beesat9
     # plt.plot(*moon_eci.position.m, 'go')  # Moon

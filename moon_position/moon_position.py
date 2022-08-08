@@ -63,11 +63,11 @@ print(transformation_ICRF_to_BFK)
 
 # print(transformation_BFK_to_ICRF @ np.array([0, 0, 1]))
 
-# Step 3: Calculate Beesat9 to Moon vector
-beesat9_moon_vector = (earth + beesat9).at(timestamp).observe(moon)
+# Step 3: Calculate Satellite to Moon vector
+satellite_moon_vector = (earth + beesat9).at(timestamp).observe(moon)
 
-beesat9_moon_vector_bfk = transformation_ICRF_to_BFK.inv().apply(beesat9_moon_vector.position.m)
-beesat9_apparent_moon_angle_BFK = np.arctan(beesat9_moon_vector_bfk[2] / beesat9_moon_vector_bfk[1])
+satellite_moon_vector_bfk = transformation_ICRF_to_BFK.apply(satellite_moon_vector.position.m)
+satellite_apparent_moon_angle_BFK = np.arctan(satellite_moon_vector_bfk[2] / satellite_moon_vector_bfk[1])
 
-print("Beesat9 -> Moon (BFK):", beesat9_moon_vector_bfk / np.linalg.norm(beesat9_moon_vector_bfk))
-print("Apparent Moon angle:", math.degrees(beesat9_apparent_moon_angle_BFK))
+print("Beesat9 -> Moon (BFK):", satellite_moon_vector_bfk / np.linalg.norm(satellite_moon_vector_bfk))
+print("Apparent Moon angle:", math.degrees(satellite_apparent_moon_angle_BFK))
