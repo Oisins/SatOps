@@ -3,14 +3,14 @@ import numpy as np
 import scipy.optimize
 
 
-def segment_earth_moon(im):
+def segment_earth_moon(img):
     """
     Finds eath and moon in image and creates boolean masks for both
-    :param im: b/w image of earth and moon
+    :param img: b/w image of earth and moon
     :return:
     """
 
-    num_labels, labels_im = cv2.connectedComponents(im)
+    num_labels, labels_im = cv2.connectedComponents(img)
 
     assert num_labels == 3, f"Number of Object should be 2 ({num_labels - 1} found)"
 
@@ -20,10 +20,13 @@ def segment_earth_moon(im):
     mask1_is_moon = np.sum(mask1) < np.sum(mask2)
     moon_mask, earth_mask = (mask1, mask2) if mask1_is_moon else (mask2, mask1)
 
-    return earth_mask, moon_mask
+    img_earth = img & earth_mask
+    img_moon = img & moon_mask
+
+    return img_earth, img_moon
 
 
-def find_earth_circle(points):
+def fit_horizon_circle(points):
     """ Given a list of points on the circumference of the (perceived) earth, calculate radius and center """
 
     def calc_R(xc, yc):
