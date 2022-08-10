@@ -6,16 +6,18 @@ from scipy.spatial.transform import Rotation
 from skyfield.api import load
 from skyfield.sgp4lib import EarthSatellite
 
+from .dictionary_satellites import beesat4, katalog1
+
+mission = katalog1
+
 #### Step 1: Create Beesat 9 TLEs, load Earth and create timestamp
 
 ts = load.timescale()
-timestamp = ts.utc(2022, 2, 15, 12, 36, 43)
+timestamp = ts.utc(*mission["timestamp"])
+# timestamp = ts.utc(2022, 8, 8, 1, 0, 0)
 # timestamp = ts.utc(2022, 6, 3, 6, 27, 51)  # Beesat9 looking directly at moon: 3 Jul 2022 06:27:51.744
 
-# TLE for 2022-02-15
-line1 = '1 44412U 19038AC  22045.39596195  .00006669  00000-0  36191-3 0  9996'
-line2 = '2 44412  97.6206  14.1119 0020861 195.3802 164.6798 15.14703389144055'
-beesat9 = EarthSatellite(line1, line2, 'Beesat 9', ts)
+beesat9 = EarthSatellite(mission["TLE_line1"], mission["TLE_line2"], 'Beesat 9', ts)
 
 planets = load('de405.bsp')
 earth = planets['earth']
@@ -52,14 +54,14 @@ print("Beesat9 Velocity Vector (ECI) in m/s", velocity_vector_eci)
 y = np.cross(position_vector_eci, velocity_vector_eci) / np.linalg.norm(
     np.cross(position_vector_eci, velocity_vector_eci))
 z = -position_vector_eci / np.linalg.norm(position_vector_eci)
-x = np.cross(y, z)
+x = np.cross(z, y)
 print("x:", x)
 print("y:", y)
 print("z:", z)
 
 # Step 2.3: Construct transformation matrix
 transformation_ICRF_to_BFK = Rotation.from_matrix(np.column_stack([x, y, z]))
-print(transformation_ICRF_to_BFK)
+print(transformation_ICRF_to_BFK.as_matrix())
 
 # print(transformation_BFK_to_ICRF @ np.array([0, 0, 1]))
 

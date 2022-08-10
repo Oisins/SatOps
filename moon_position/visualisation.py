@@ -2,6 +2,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
+from moon_position.moon_position import moon_eci
+
 
 def _set_axes_radius(ax, origin, radius):
     x, y, z = origin
@@ -27,22 +29,22 @@ def set_axes_equal(ax: plt.Axes):
     _set_axes_radius(ax, origin, radius)
 
 
-def visualise_bodies(beesat9_eci, transformation_BFK_to_ICRF, rotation_ICRF_to_KFK, beesat9_moon_vector):
+def visualise_bodies(position_vector_eci, transformation_BFK_to_ICRF, rotation_ICRF_to_KFK, beesat9_moon_vector):
     fig = plt.figure()
     ax = plt.axes(projection='3d')
     ax.quiver(0, 0, 0, *(np.array([0, 0, 1])), color='steelblue')
-    ax.quiver(*beesat9_eci.position.m, *(transformation_BFK_to_ICRF.apply(np.array([1, 0, 0]) * 1e6)), color='red')
-    ax.quiver(*beesat9_eci.position.m, *(transformation_BFK_to_ICRF.apply(np.array([0, 1, 0]) * 1e6)), color='green')
-    ax.quiver(*beesat9_eci.position.m, *(transformation_BFK_to_ICRF.apply(np.array([0, 0, 1]) * 1e6)), color='blue')
+    ax.quiver(*position_vector_eci, *(transformation_BFK_to_ICRF.apply(np.array([1, 0, 0]) * 1e6)), color='red')
+    ax.quiver(*position_vector_eci, *(transformation_BFK_to_ICRF.apply(np.array([0, 1, 0]) * 1e6)), color='green')
+    ax.quiver(*position_vector_eci, *(transformation_BFK_to_ICRF.apply(np.array([0, 0, 1]) * 1e6)), color='blue')
 
-    ax.quiver(*beesat9_eci.position.m, *(rotation_ICRF_to_KFK.apply(np.array([1, 0, 0]) * 1e6)), color='red',
+    ax.quiver(*position_vector_eci, *(rotation_ICRF_to_KFK.apply(np.array([1, 0, 0]) * 1e6)), color='red',
               linestyle="--")
-    ax.quiver(*beesat9_eci.position.m, *(rotation_ICRF_to_KFK.apply(np.array([0, 1, 0]) * 1e6)), color='green',
+    ax.quiver(*position_vector_eci, *(rotation_ICRF_to_KFK.apply(np.array([0, 1, 0]) * 1e6)), color='green',
               linestyle="--")
-    ax.quiver(*beesat9_eci.position.m, *(rotation_ICRF_to_KFK.apply(np.array([0, 0, 1]) * 1e6)), color='blue',
+    ax.quiver(*position_vector_eci, *(rotation_ICRF_to_KFK.apply(np.array([0, 0, 1]) * 1e6)), color='blue',
               linestyle="--")
 
-    ax.quiver(*beesat9_eci.position.m, *(beesat9_moon_vector.position.m / 100), color='orange')
+    ax.quiver(*position_vector_eci, *(beesat9_moon_vector.position.m / 100), color='orange')
 
     # draw sphere
     u, v = np.mgrid[0:2 * np.pi:20j, 0:np.pi:10j]
