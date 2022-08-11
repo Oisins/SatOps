@@ -4,17 +4,18 @@ import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation
 
-from src.dictionary_satellites import beesat4
+from src.dictionary_satellites import *
 from src.image_processing import load_image, filter_edges
 from src.moon_position import calculate_apparent_moon_angle, create_bodies, create_lvlh
 from moon_position.visualisation import visualise_bodies
 from utils import fit_horizon_circle, segment_earth_moon, find_moon, find_earth_edge
 
-camera_angle_width = 15 * 2
-camera_angle_height = 11.5 * 2
+mission = katalog1
+camera_angle_width, camera_angle_height = mission["camera"]
 
+print(f"Running Analysis on {mission['description']}")
 # Load image and convert to b/w
-img_original, im_bw, (image_height, image_width) = load_image()
+img_original, im_bw, (image_height, image_width) = load_image("bilder/" + mission["image_file"])
 
 # cv2.imwrite("out/0-original.jpg", img_original)
 # cv2.imwrite("out/1-grey.jpg", img_grey)
@@ -25,7 +26,7 @@ im_edges = filter_edges(im_bw)
 kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
 cv2.imwrite("out/3-gauss.jpg", cv2.dilate(im_edges, kernel, iterations=2))
 
-moon_eci, satellite_eci = create_bodies(mission=beesat4)
+moon_eci, satellite_eci = create_bodies(mission=mission)
 rotation_ECI_to_LVLH = create_lvlh(satellite_eci)
 
 # Segment Earth and Moon
@@ -45,7 +46,7 @@ apparent_earth_radius, earth_center = fit_horizon_circle(horizon_points)
 
 # Place chord on earths edge and calculate slope
 m_sekante = (horizon_points[0][1] - horizon_points[-1][1]) / (horizon_points[0][0] - horizon_points[-1][0])
-m_radius = -1 / m_sekante
+# m_radius = -1 / m_sekante
 
 # Calculate reference point. Point lies on intersection of earth and a line perpendicular to the previously calculated
 # chord passing through the center of the earth
@@ -81,18 +82,28 @@ cv2.imwrite("out/4-augmented.jpg", img_original)
 beta = math.acos(6_371_000 / satellite_eci.position.length().m)
 
 L = math.cos(roll_angle) * earth_edge_relative
-vert_camera_angle_radians = math.radians(camera_angle_height)  # der vertikale Öffnungswinkel Beesat-9 in radiant
-omega = vert_camera_angle_radians / math.cos(
+vert_camera_angle_radians = camera_angle_height  # der vertikale Öffnungswinkel Beesat-9 in radiant
+moon_angle_2d_img = vert_camera_angle_radians / math.cos(
     roll_angle)  # der wahre Öffungswinkel senkrecht zur Erdtangente (durch drehung vom KOS wird großer als original)
 
 c = image_height / math.cos(roll_angle)
-pitch_relative = L / c * omega  # Winkel Erdhorizont zu Fadenkreuz
+pitch_relative = L / c * moon_angle_2d_img  # Winkel Erdhorizont zu Fadenkreuz
 pitch_angle = -(beta - pitch_relative)  # Der Nickwinkel relativ zur Flugrichtung (Drehung nach oben = positiv)
 print("Pitch Angle:", math.degrees(pitch_angle))
 
-image_yaw = moon_position_relativ[0] / image_width * math.radians(camera_angle_width)
+# Gierwinkel berechnen
+# Berechnung der Distanz des Mondes zum Mittelpunkt des Koordinatensystems
+distance_center_moon = np.linalg.norm(moon_position_relativ)
+# Erklärung für theta: ich berechne den Winkel zwischen der Hypothenuse H_1 und der y-Achse
+moon_angle_2d_img = math.asin(moon_position_relativ[0] / distance_center_moon)
+psi = moon_angle_2d_img - roll_angle
+# Ich drehe das Kooridnatensystem um den Rollwinkel und theta um mit in der neuen x-Achse die Länge L_1 des Gierwinkels zu berechen
+c_2 = distance_center_moon * math.sin(psi)  # pixel
+image_yaw = c_2 * camera_angle_width / image_width  # relativer Gierwinkel
+
+# image_yaw = moon_position_relativ[0] / image_width * camera_angle_width
 apparent_moon_angle = calculate_apparent_moon_angle(satellite_eci, moon_eci, rotation_ECI_to_LVLH)
-yaw_angle = -(apparent_moon_angle + image_yaw)
+yaw_angle = -(apparent_moon_angle - image_yaw)
 print("Image yaw", math.degrees(image_yaw))
 print("Total yaw", math.degrees(yaw_angle))
 
@@ -120,7 +131,9 @@ transformation_ICRF_to_camera = rotation_ECI_to_LVLH * rotation_camera
 
 print("Final Euler Angles", transformation_ICRF_to_target.as_euler("XYZ", degrees=True))
 print("Final Quat.", transformation_ICRF_to_target.as_quat())
+diff = transformation_ICRF_to_target.inv() * Rotation.from_quat(mission["reference_quaternions"])
+print("Angular diff", diff.as_euler("XYZ", degrees=True))
 visualise_bodies(satellite_eci, moon_eci, rotation_ECI_to_LVLH, transformation_ICRF_to_target)
 
-cv2.imshow("IMG2", img_original)
+cv2.imshow("Augmented Image", img_original)
 cv2.waitKey(0)

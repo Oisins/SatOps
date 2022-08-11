@@ -6,11 +6,9 @@ from scipy.spatial.transform import Rotation
 from skyfield.api import load
 from skyfield.sgp4lib import EarthSatellite
 
-from src.dictionary_satellites import beesat4
 
-
-def create_bodies(mission=beesat4):
-    # Step 1: Create Beesat 9 TLEs, load Earth and create timestamp
+def create_bodies(mission):
+    # Step 1: Load TLEs, load Earth and create timestamp
     ts = load.timescale()
     timestamp = ts.utc(*mission["timestamp"])
 
@@ -76,14 +74,11 @@ def calculate_moon_vector(satellite_eci, moon_eci):
 def calculate_apparent_moon_angle(satellite_eci, moon_eci, rotation_ECI_to_LVLH):
     """ Calculate angle to moon in satellites XY-Plane in LVLH reference frame """
 
-    # todo: does this work?
-    # satellite_moon_vector = (earth + satellite).at(timestamp).observe(moon)
     satellite_moon_vector = calculate_moon_vector(satellite_eci, moon_eci)
 
     satellite_moon_vector_bfk = rotation_ECI_to_LVLH.apply(satellite_moon_vector)
     apparent_moon_angle = np.arctan(satellite_moon_vector_bfk[1] / satellite_moon_vector_bfk[0])
 
-    print("Satellite -> Moon (BFK):", satellite_moon_vector_bfk / np.linalg.norm(satellite_moon_vector_bfk))
     print("Apparent Moon angle:", math.degrees(apparent_moon_angle))
 
     return apparent_moon_angle
