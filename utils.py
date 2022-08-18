@@ -23,7 +23,7 @@ def segment_earth_moon(img):
     img_earth = img & earth_mask
     img_moon = img & moon_mask
 
-    return img_earth, img_moon
+    return earth_mask, moon_mask
 
 
 def fit_horizon_circle(points):

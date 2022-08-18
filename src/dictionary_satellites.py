@@ -15,6 +15,18 @@ beesat4 = {
     "reference_quaternions": [0.3589, 0.6074, 0.46, 0.5389]
 }
 
+# TODO: Enter data
+beesat9 = {
+    "description": 'Beesat-9 4th Experiment',
+    "TLE_line1": '1 44412U 19038AC  22228.86191098  .00007101  00000+0  35485-3 0  9990',
+    "TLE_line2": '2 44412  97.6402 198.6346 0017988 286.9761  72.9500 15.17640961171859',
+    "date_time": '5 Aug 2022 06:33:22Z',
+    "timestamp": (2022, 8, 5, 6, 33, 22),
+    "image_file": "2022-08-05_06-33-09_Earth-Horizon-Moon_1.jpg",
+    "camera": beesat9_camera,
+    "reference_quaternions": [0.6952, -0.4394, -0.0746, 0.5639]
+}
+
 stk_simulation = {
     "TLE_line1": '1 44412U 19038AC  22220.48804915  .00007782  00000+0  38970-3 0  9996',
     "TLE_line2": '2 44412  97.6380 190.1861 0018557 318.7515  41.2315 15.17523139170586',
@@ -33,4 +45,4 @@ katalog1 = {
     "reference_quaternions": [-0.490834, 0.395866, 0.775337, 0.0349882]
 }
 
-__all__ = ["beesat4", "katalog1", "stk_simulation"]
+__all__ = ["beesat4", "beesat9", "katalog1", "stk_simulation"]
