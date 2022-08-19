@@ -2,6 +2,7 @@ import math
 
 import cv2
 import numpy as np
+from pyquaternion import Quaternion
 from scipy.spatial.transform import Rotation
 
 from src.dictionary_satellites import *
@@ -155,11 +156,11 @@ def main(mission):
 
     # diff = Rotation.from_quat(mission["reference_quaternions"]) * Rotation.from_quat(mission["reference_quaternions"]).inv()
     *v, s = diff.as_quat()
-    print("Diff Angle", math.degrees(2 * math.atan2(np.linalg.norm(v), s)) % 360)
+    print("Diff Angle", math.degrees(2 * math.atan2(np.linalg.norm(v), s)) % 360 - 180)
 
     cv2.imshow("Augmented Image", img_original)
     cv2.waitKey(0)
 
 
 if __name__ == '__main__':
-    main(katalog1)
+    main(beesat9)
