@@ -55,18 +55,21 @@ def main(mission):
     print("Earth radius", apparent_earth_radius)
     print()
 
+    is_earth_below = earth_center[1] > horizon_points[0][1]
+
     # Rollwinkel bestimmen (positiv = Satellit rollt im Uhrzeigersinn)
     roll_angle = -math.atan(m_sekante)
     # If Earth is above Horizon Tangent, angles needs to be flipped
-    roll_angle = roll_angle if earth_center[1] > horizon_points[0][1] else math.radians(180) + roll_angle
+    roll_angle = roll_angle if is_earth_below else math.radians(180) + roll_angle
     print("Rollwinkel", math.degrees(roll_angle))
 
     moon_position_relativ = moon_position - np.array(img_original.shape[:2][::-1]) / 2
     # print("Y-Distance Moon to cross-hairs", moon_position_relativ[0])
 
     # Calculate intersection between Cross-hairs and earth's edge
-    earth_edge_relative = earth_center[1] - math.sqrt(
+    d = math.sqrt(
         apparent_earth_radius ** 2 - (img_original.shape[1] / 2 - earth_center[0]) ** 2) - img_original.shape[0] / 2
+    earth_edge_relative = earth_center[1] + (-d if is_earth_below else d)
     print("Y-Distance Earth edge to Cross-Hairs", earth_edge_relative)
 
     # Draw onto image
@@ -83,16 +86,17 @@ def main(mission):
                             (int(img_original.shape[1] / 2), img_original.shape[0]), thickness=1, color=(255, 255, 255))
     cv2.imwrite("out/4-augmented.jpg", img_original)
 
+    # Nickwinkel - Pitch
     # Winkel zwischen Flugrichtung und Erdtangente bestimmen
     beta = math.acos(6_371_000 / satellite_eci.position.length().m)
 
-    L = math.cos(roll_angle) * earth_edge_relative
+    c_px = math.cos(roll_angle) * earth_edge_relative
     vert_camera_angle_radians = camera_angle_height  # der vertikale Öffnungswinkel Beesat-9 in radiant
-    moon_angle_2d_img = vert_camera_angle_radians / math.cos(
+    wahrer_offnungswinkel = vert_camera_angle_radians / math.cos(
         roll_angle)  # der wahre Öffungswinkel senkrecht zur Erdtangente (durch drehung vom KOS wird großer als original)
 
     c = image_height / math.cos(roll_angle)
-    pitch_relative = L / c * moon_angle_2d_img  # Winkel Erdhorizont zu Fadenkreuz
+    pitch_relative = (c_px / c * wahrer_offnungswinkel)  # Winkel Erdhorizont zu Fadenkreuz
     pitch_angle = -(beta - pitch_relative)  # Der Nickwinkel relativ zur Flugrichtung (Drehung nach oben = positiv)
     print("Pitch Angle:", math.degrees(pitch_angle))
 
@@ -108,7 +112,7 @@ def main(mission):
 
     # image_yaw = moon_position_relativ[0] / image_width * camera_angle_width
     apparent_moon_angle = calculate_apparent_moon_angle(satellite_eci, moon_eci, rotation_ECI_to_LVLH)
-    yaw_angle = -(apparent_moon_angle - image_yaw)
+    yaw_angle = -(apparent_moon_angle - (-image_yaw if is_earth_below else image_yaw))
     print("Image yaw", math.degrees(image_yaw))
     print("Total yaw", math.degrees(yaw_angle))
 
@@ -132,20 +136,30 @@ def main(mission):
 
     # Transformationen: ECI -> Bahnfest (LVLH) -> Kamera -> Target
     transformation_ICRF_to_target = rotation_ECI_to_LVLH * rotation_camera * transformation_camera_to_target
-    transformation_ICRF_to_camera = rotation_ECI_to_LVLH * rotation_camera
 
     print("Final Euler Angles", transformation_ICRF_to_target.as_euler("XYZ", degrees=True))
     print("Final Quat.", transformation_ICRF_to_target.as_quat())
-    diff = transformation_ICRF_to_target.inv() * Rotation.from_quat(mission["reference_quaternions"])
-    print("Angular diff", diff.as_euler("XYZ", degrees=True))
+    diff = Rotation.from_quat(mission["reference_quaternions"]) * transformation_ICRF_to_target.inv()
+    # print("Angular diff", diff.as_euler("XYZ", degrees=True))
     # visualise_bodies(satellite_eci, moon_eci, rotation_ECI_to_LVLH, transformation_ICRF_to_target)
 
-    *v, s = transformation_ICRF_to_target.as_quat()
-    print("Diff Angle", math.degrees(math.atan2(np.linalg.norm(v), s)))
+    # q = np.array(mission["reference_quaternions"])
+    #
+    # q_conj = np.array([*(q[0:3] * -1), q[3]])
+    # q_inv = q_conj / np.linalg.norm(q)**2
+    #
+    # diff = q * q_inv
+    # print("Diff Angle", math.degrees(math.atan2(np.linalg.norm(diff[:3]), diff[3])))
+
+    print(diff.as_quat())
+
+    # diff = Rotation.from_quat(mission["reference_quaternions"]) * Rotation.from_quat(mission["reference_quaternions"]).inv()
+    *v, s = diff.as_quat()
+    print("Diff Angle", math.degrees(2 * math.atan2(np.linalg.norm(v), s)) % 360)
 
     cv2.imshow("Augmented Image", img_original)
     cv2.waitKey(0)
 
 
 if __name__ == '__main__':
-    main(beesat9)
+    main(katalog1)

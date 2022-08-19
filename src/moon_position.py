@@ -77,8 +77,17 @@ def calculate_apparent_moon_angle(satellite_eci, moon_eci, rotation_ECI_to_LVLH)
     satellite_moon_vector = calculate_moon_vector(satellite_eci, moon_eci)
 
     satellite_moon_vector_lvlh = rotation_ECI_to_LVLH.inv().apply(satellite_moon_vector)
-    apparent_moon_angle = np.arctan(satellite_moon_vector_lvlh[1] / satellite_moon_vector_lvlh[0])
+    satellite_moon_vector_lvlh = satellite_moon_vector_lvlh / np.linalg.norm(satellite_moon_vector_lvlh)
+    # satellite_moon_vector_lvlh = [1, 1, 0]
 
-    print("Apparent Moon angle:", math.degrees(apparent_moon_angle))
+    origin_vector = (1, 0)
 
-    return apparent_moon_angle
+    # https://stackoverflow.com/a/21484228
+    angle = math.atan2(satellite_moon_vector_lvlh[1], satellite_moon_vector_lvlh[0]) - \
+            math.atan2(origin_vector[1], origin_vector[0])
+
+    # Old: apparent_moon_angle = np.arctan(satellite_moon_vector_lvlh[1] / satellite_moon_vector_lvlh[0])
+
+    print("Apparent Moon angle:", math.degrees(angle))
+
+    return angle
