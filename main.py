@@ -2,14 +2,13 @@ import math
 
 import cv2
 import numpy as np
-from pyquaternion import Quaternion
 from scipy.spatial.transform import Rotation
 
 from src.dictionary_satellites import *
 from src.image_processing import load_image, filter_edges
 from src.moon_position import calculate_apparent_moon_angle, create_bodies, create_lvlh
-from moon_position.visualisation import visualise_bodies
-from utils import fit_horizon_circle, segment_earth_moon, find_moon, find_earth_edge
+from src.moon_visualisation import visualise_bodies
+from src.utils import fit_horizon_circle, segment_earth_moon, find_moon, find_earth_edge
 
 
 def main(mission):
